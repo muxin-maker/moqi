@@ -2,7 +2,7 @@
 
 把你纠正过的词、表情和语气记下来，让支持 MCP 的 AI 在下次遇到相同信号时先查，再回答。
 
-**当前状态：0.2.0 beta，本地试用版。** 源码尚未发布到 PyPI 或公开 GitHub 仓库。安装命令以本地源码目录为准。
+**当前状态：0.2.0 beta 2，本地试用版。** 源码尚未发布到 PyPI 或公开 GitHub 仓库。安装命令以本地源码目录为准。
 版本变化见 [更新记录](CHANGELOG.md)。
 
 ## 它怎样工作
@@ -13,6 +13,19 @@
 4. 再遇到相近文本，工具返回含义和匹配分数。弱匹配必须先确认语境，不能直接套用。
 
 moqi 不会自动监听聊天。宿主 AI 必须实际调用工具；只写提示词不能保证每轮都调用。
+
+### 可选的联网查梗
+
+`research` 可以查公开短语的用例、原话和出处线索。它只发送你输入的短语与公开背景，返回网页标题、链接和摘要；**不会发送个人默契记录，也不会把网页结果写成已确认含义**。网页摘要不能证明谁最早说了这句话，需打开原视频或原帖核对。
+
+联网搜索使用 [Brave Search API](https://api-dashboard.search.brave.com/api-reference/web/search/get)，需要自行取得密钥，并注意该服务的额度与计费。Windows PowerShell 当前窗口配置示例：
+
+```powershell
+$env:MOQI_BRAVE_API_KEY = "你的密钥"
+python -m moqi research "我了个雷" --topic "火影忍者手游"
+```
+
+将密钥放在运行 MCP 服务的客户端环境变量中，不要写进 Git 仓库。未配置密钥时，工具会提示宿主使用其已有的网页搜索能力。搜索仅在明确调用 `research` 时发生。
 
 ## 安装与五分钟试用
 
@@ -64,7 +77,9 @@ python examples/walkthrough.py
 }
 ```
 
-可用工具：`scan`、`recall`、`guess`、`correct`、`forget`、`stats`、`dump`。`forget` 只接受完整 ID 或唯一的完整 key，宿主仅在用户明确要求删除时才应调用。推荐把 [调用说明](prompts/when-to-call.md) 加入宿主的自定义指令，并检查宿主实际支持 MCP 工具调用。
+可用工具：`scan`、`recall`、`research`、`guess`、`correct`、`forget`、`stats`、`dump`。`forget` 只接受完整 ID 或唯一的完整 key，宿主仅在用户明确要求删除时才应调用。推荐把 [调用说明](prompts/when-to-call.md) 加入宿主的自定义指令，并检查宿主实际支持 MCP 工具调用。
+
+每次发布新版本，同步更新版本号与更新记录，测试通过后将对应提交和版本标签推送到 GitHub；步骤见 [发布流程](docs/releasing.md)。
 
 ## 匹配规则与边界
 

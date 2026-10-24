@@ -32,6 +32,7 @@ async def main() -> int:
     atexit.register(shutil.rmtree, home, ignore_errors=True)
     env = dict(os.environ)
     env["MOQI_HOME"] = home
+    env.pop("MOQI_BRAVE_API_KEY", None)
     env["PYTHONIOENCODING"] = "utf-8"
     env["PYTHONPATH"] = ROOT + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
 
@@ -52,10 +53,16 @@ async def main() -> int:
             names = [t.name for t in listed.tools]
             print(f"[ok] 工具 {len(names)} 个：{', '.join(names)}")
 
-            expect = {"scan", "recall", "guess", "correct", "forget", "stats", "dump"}
+            expect = {"scan", "recall", "research", "guess", "correct", "forget", "stats", "dump"}
             missing = expect - set(names)
             if missing:
                 print(f"[fail] 少了：{sorted(missing)}")
+                return 1
+
+            lookup = await session.call_tool("research", {"term": "我了个雷", "topic": "火影忍者手游"})
+            lookup_result = json.loads(lookup.content[0].text)
+            if lookup_result["ok"] or lookup_result["configured"]:
+                print("[fail] 未配置密钥时，research 应返回配置提示")
                 return 1
 
             got = await session.call_tool("guess", {

@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional
 from . import __version__
 from .core import match as matcher
 from .core import store
+from .core import web_lookup
 
 
 def _rows(domain: Optional[str]) -> List[Dict[str, Any]]:
@@ -68,6 +69,18 @@ def cmd_recall(args: argparse.Namespace) -> int:
     if not hits:
         print("库里没有。先问他，再 guess 记一条。")
     return 0
+
+
+def cmd_research(args: argparse.Namespace) -> int:
+    result = web_lookup.research(args.term, args.topic)
+    if args.json:
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    else:
+        print(f"搜索：{result['query']}")
+        for item in result["results"]:
+            print(f"- {item['title']}\n  {item['url']}\n  {item['snippet']}")
+        print(result["hint"])
+    return 0 if result["ok"] else 2
 
 
 def cmd_guess(args: argparse.Namespace) -> int:
@@ -187,6 +200,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_recall.add_argument("context")
     p_recall.add_argument("--limit", type=int, default=8)
     p_recall.set_defaults(func=cmd_recall)
+
+    p_research = sub.add_parser("research", help="联网查公开梗的出处线索（需配置 Brave Search API）")
+    p_research.add_argument("term", help="公开短语，不要输入私人聊天")
+    p_research.add_argument("--topic", default="", help="公开背景，例如游戏名")
+    p_research.set_defaults(func=cmd_research)
 
     p_guess = sub.add_parser("guess", help="记下我的猜测")
     p_guess.add_argument("domain")
