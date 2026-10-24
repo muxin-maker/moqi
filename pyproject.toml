@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "moqi"
+version = "0.2.0b1"
+description = "A tacit-agreement notebook between you and your AI — it guesses what you mean, you correct it once, it remembers."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "moqi contributors" }]
+keywords = ["ai", "llm", "mcp", "alignment", "personalization", "context"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries",
+]
+
+# 核心零依赖。装不上就别指望有人用。
+dependencies = []
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.0.0,<3"]
+dev = ["pytest>=8.0,<9"]
+
+[project.scripts]
+moqi = "moqi.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["moqi*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

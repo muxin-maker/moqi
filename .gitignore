@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# moqi 自己的数据（别把个人默契提交上来）
+.moqi/
+.tmptest/
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+.DS_Store

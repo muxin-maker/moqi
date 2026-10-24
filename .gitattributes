@@ -1,0 +1,11 @@
+# 统一用 LF。这个项目在 Windows 上开发但要能跨平台用，
+# 不能让 CRLF 混进仓库。
+* text=auto eol=lf
+
+# 这些是二进制，别碰
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.7z binary
+*.exe binary
