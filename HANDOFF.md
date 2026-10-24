@@ -25,6 +25,6 @@
 
 1. 在目标 Windows、macOS、Linux 客户端上安装 wheel 并连接 MCP，特别检查各宿主是否按提示主动调用 `scan`。
 2. 用真实但经同意的数据做连续多轮使用测试，量化漏检、误检和打断频率；当前单元测试不能证明对话体验。
-3. 发布公开仓库与包之前，确认名称、主页、支持渠道、版本号以及是否公开本地历史文件。每版同步 GitHub 的步骤见 `docs/releasing.md`。
+3. GitHub 仓库已公开在 `muxin-maker/moqi`；发布包之前还需确认包名所有权和支持渠道。每版同步 GitHub 的步骤见 `docs/releasing.md`。
 
 本地开发测试：`python -m pytest -q`、`python tests/mcp_smoke.py`。核心保持零第三方依赖，不引入数据库或自动上传。
