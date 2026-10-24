@@ -4,7 +4,7 @@ moqi 让你培养一个真正懂你意思的 AI：记住你的幽默、黑话和
 
 它把你确认过的含义存在本地，让支持 MCP 的 AI 下次遇到相同说法时先查，再回答。
 
-**当前状态：0.2.0 beta 4，公开源码预发布版。** 源码在 [GitHub](https://github.com/muxin-maker/moqi)，尚未发布到 PyPI；可以直接从 GitHub 版本标签安装。
+**当前状态：0.2.0 beta 5，公开源码预发布版。** 源码在 [GitHub](https://github.com/muxin-maker/moqi)，尚未发布到 PyPI；可以直接从 GitHub 版本标签安装。
 版本变化见 [更新记录](CHANGELOG.md)。
 
 ## 它怎样工作
@@ -31,13 +31,13 @@ python -m moqi research "我了个雷" --topic "火影忍者手游"
 
 ## 安装与五分钟试用
 
-需要 Python 3.10+。无需克隆仓库，先在自己选定的空目录创建虚拟环境，再从固定版本安装。Windows PowerShell：
+需要 Python 3.10+。先运行 `py -3 --version` 确认 Python 可用；若系统没有 `py` 命令，请用 `python --version` 检查，并在下方把 `py -3` 换成 `python`。两个命令都不可用时，先安装 Python。无需克隆仓库，先在自己选定的空目录创建虚拟环境，再从固定版本安装。Windows PowerShell：
 
 ```powershell
 $OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
 $env:PYTHONIOENCODING = 'utf-8'
 py -3 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install "moqi[mcp] @ https://github.com/muxin-maker/moqi/archive/refs/tags/v0.2.0b4.zip"
+.\.venv\Scripts\python.exe -m pip install "moqi[mcp] @ https://github.com/muxin-maker/moqi/archive/refs/tags/v0.2.0b5.zip"
 .\.venv\Scripts\python.exe -m moqi doctor
 ```
 

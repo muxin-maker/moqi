@@ -1,6 +1,6 @@
 # moqi 开发交接
 
-本文件描述 **0.2.0 beta 4 当前实现**。最初设想见 `docs/specs/2026-10-23-moqi-design.md`；如两者冲突，以当前代码和 README 为准。
+本文件描述 **0.2.0 beta 5 当前实现**。最初设想见 `docs/specs/2026-10-23-moqi-design.md`；如两者冲突，以当前代码和 README 为准。
 
 ## 目标
 

@@ -230,7 +230,8 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     else:
         print(f"moqi {result['version']} · Python {result['python']}")
         print(f"数据目录：{result['data_dir']}（{total} 条，{len(domains)} 个领域）")
-        print(f"MCP：{'可用' if result['mcp_available'] else '未安装，可用 pip install \".[mcp]\"'}")
+        mcp_status = "可用" if result["mcp_available"] else '未安装，可用 pip install ".[mcp]"'
+        print(f"MCP：{mcp_status}")
         print(f"联网查梗：{'已配置' if result['research_configured'] else '未配置（可选）'}")
         print("数据检查：" + ("通过" if not issues else "发现问题：" + "; ".join(issues)))
     return 0 if not issues else 2
