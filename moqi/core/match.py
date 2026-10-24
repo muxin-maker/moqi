@@ -1,6 +1,6 @@
 """匹配：v1 故意简单，只有两条规则。
 
-    1. key 出现在文本里（或 key 拆开后的某一段出现）
+    1. key 出现在文本里（或 key 拆开后的某一段出现），长句仅算线索
     2. signal 与文本的字符二元组重合度够高
 
 不上向量、不调模型、不联网。理由：
@@ -65,7 +65,7 @@ def key_parts(key: str) -> List[str]:
 def key_score(text: str, key: str) -> float:
     """key 与文本的吻合程度，0 表示不沾边。
 
-    整串命中给 1.00，单个多字片段给 0.70。
+    整条输入等于 key 才给 1.00；key 仅出现在长句里只算 0.70 线索。
     单字只在整条输入就是该字时给 0.60，避免它嵌在普通词句里误命中。
     """
     clean = norm(text)
@@ -73,8 +73,11 @@ def key_score(text: str, key: str) -> float:
         return 0.0
 
     whole = norm(key)
-    if whole and (clean == whole or (len(whole) >= 2 and whole in clean)):
+    if whole and clean == whole:
         return 1.0
+
+    if len(whole) >= 2 and whole in clean:
+        return 0.70
 
     best = 0.0
     for part in key_parts(key):
@@ -106,8 +109,10 @@ def score(text: str, row: Dict[str, object]) -> float:
     if signal:
         sim = similarity(text, signal)
         if sim >= SIM_THRESHOLD:
-            # 相似度压到 0.5~0.84，永远不会高过整串 key 命中
+            # 相似度压到 0.5~0.84；长句里的局部重合仍只是线索。
             signal_point = round(0.5 + (sim - SIM_THRESHOLD) * (0.34 / (1 - SIM_THRESHOLD)), 4)
+            if norm(text) != norm(signal):
+                signal_point = min(signal_point, 0.79)
             return max(key_point, signal_point)
 
     return key_point

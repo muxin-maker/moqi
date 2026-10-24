@@ -46,7 +46,21 @@ def test_similarity_identical_is_one():
 
 
 def test_key_score_whole_match_is_one():
-    assert matcher.key_score("他发了个哼_白发少女", "哼_白发少女") == 1.0
+    assert matcher.key_score("哼_白发少女", "哼_白发少女") == 1.0
+    assert matcher.key_score("他发了个哼_白发少女", "哼_白发少女") == 0.70
+
+
+def test_long_sentence_does_not_make_slang_certain():
+    row = {"key": "我了个雷", "signal": "我了个雷"}
+    assert matcher.score("我了个雷！", row) == 1.0
+    assert matcher.score("我了个雷炸了", row) < 0.8
+    assert matcher.score("你说我了个雷是在骂人吗", row) < 0.8
+
+
+def test_embedded_signal_is_only_a_clue():
+    row = {"key": "别的词", "signal": "白发少女闭眼哼气"}
+    assert matcher.score("白发少女闭眼哼气", row) == 0.84
+    assert matcher.score("她说白发少女闭眼哼气是在生气", row) < 0.8
 
 
 def test_key_score_multi_char_part():
