@@ -45,10 +45,8 @@ def domain_lock(domain: str):
     path = domain_path(domain) + ".lock"
     os.makedirs(os.path.dirname(path), mode=0o700, exist_ok=True)
     with open(path, "a+b") as fh:
-        fh.seek(0, os.SEEK_END)
-        if fh.tell() == 0:
-            fh.write(b"\0")
-            fh.flush()
+        # Windows 能锁定空文件起点的字节；不要在获得锁之前写初始化字节。
+        # 两个进程首次打开同一个空文件时，抢先写入会触发 PermissionError。
         fh.seek(0)
         if os.name == "nt":
             import msvcrt

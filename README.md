@@ -4,7 +4,7 @@ moqi 让你培养一个真正懂你意思的 AI：记住你的幽默、黑话和
 
 它把你确认过的含义存在本地，让支持 MCP 的 AI 下次遇到相同说法时先查，再回答。
 
-**当前状态：0.2.0 beta 6，公开源码预发布版。** 源码在 [GitHub](https://github.com/muxin-maker/moqi)，尚未发布到 PyPI；可以直接从 GitHub 版本标签安装。
+**当前状态：0.2.0 beta 7，公开源码预发布版。** 源码在 [GitHub](https://github.com/muxin-maker/moqi)，尚未发布到 PyPI；可以直接从 GitHub 版本标签安装。
 版本变化见 [更新记录](CHANGELOG.md)。
 
 ## 它怎样工作
@@ -37,7 +37,7 @@ python -m moqi research "我了个雷" --topic "火影忍者手游"
 $OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
 $env:PYTHONIOENCODING = 'utf-8'
 py -3 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install "moqi[mcp] @ https://github.com/muxin-maker/moqi/archive/refs/tags/v0.2.0b6.zip"
+.\.venv\Scripts\python.exe -m pip install "moqi[mcp] @ https://github.com/muxin-maker/moqi/archive/refs/tags/v0.2.0b7.zip"
 .\.venv\Scripts\python.exe -m moqi doctor
 ```
 
