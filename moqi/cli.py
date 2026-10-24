@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import os
 import sys
@@ -22,12 +23,24 @@ from typing import Any, Dict, List, Optional
 
 from . import __version__
 from .core import match as matcher
+from .core import evaluation
+from .core import query
 from .core import store
 from .core import web_lookup
 
 
 def _rows(domain: Optional[str]) -> List[Dict[str, Any]]:
-    return store.load(domain) if domain else store.load_all()
+    return store.load(domain, strict=True) if domain else store.load_all(strict=True)
+
+
+def _query_text(value: Optional[str], from_stdin: bool) -> str:
+    if from_stdin:
+        if value is not None:
+            raise ValueError("不能同时提供文本参数和 --stdin")
+        value = sys.stdin.read(matcher.MAX_QUERY_LENGTH + 1)
+    if value is None:
+        raise ValueError("请提供查询文本，或使用 --stdin 从标准输入读取")
+    return value
 
 
 def _print_rows(title: str, rows: List[Dict[str, Any]], show_score: bool = False) -> None:
@@ -52,8 +65,13 @@ def _print_rows(title: str, rows: List[Dict[str, Any]], show_score: bool = False
 
 
 def cmd_scan(args: argparse.Namespace) -> int:
+    text = _query_text(args.text, args.stdin)
     rows = _rows(args.domain)
-    hits = matcher.rank(args.text, rows, limit=max(1, min(args.limit, 50)))
+    limit = max(1, min(args.limit, 50))
+    if args.json:
+        print(json.dumps(query.scan(text, rows, limit=limit), ensure_ascii=False, indent=2))
+        return 0
+    hits = matcher.rank(text, rows, limit=limit)
     open_items = [r for r in hits if not r.get("truth")]
 
     _print_rows("扫到这些", hits, show_score=True)
@@ -63,8 +81,13 @@ def cmd_scan(args: argparse.Namespace) -> int:
 
 
 def cmd_recall(args: argparse.Namespace) -> int:
+    context = _query_text(args.context, args.stdin)
     rows = _rows(args.domain)
-    hits = matcher.rank(args.context, rows, limit=max(1, min(args.limit, 50)))
+    limit = max(1, min(args.limit, 50))
+    if args.json:
+        print(json.dumps(query.recall(context, rows, limit=limit), ensure_ascii=False, indent=2))
+        return 0
+    hits = matcher.rank(context, rows, limit=limit)
     _print_rows("相关记录", hits, show_score=True)
     if not hits:
         print("库里没有。先问他，再 guess 记一条。")
@@ -181,6 +204,49 @@ def cmd_json(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_doctor(args: argparse.Namespace) -> int:
+    """只读检查安装和数据文件，方便首次接入时定位故障。"""
+    issues: List[str] = []
+    domains = store.list_domains()
+    total = 0
+    for domain in domains:
+        try:
+            total += len(store.load(domain, strict=True))
+        except (OSError, UnicodeError, store.DataIntegrityError) as exc:
+            issues.append(f"{domain}: {exc}")
+    result = {
+        "ok": not issues,
+        "version": __version__,
+        "python": sys.version.split()[0],
+        "data_dir": os.path.abspath(store.home()),
+        "domains": len(domains),
+        "records": total,
+        "mcp_available": importlib.util.find_spec("mcp") is not None,
+        "research_configured": bool(os.environ.get("MOQI_BRAVE_API_KEY", "").strip()),
+        "issues": issues,
+    }
+    if args.json:
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    else:
+        print(f"moqi {result['version']} · Python {result['python']}")
+        print(f"数据目录：{result['data_dir']}（{total} 条，{len(domains)} 个领域）")
+        print(f"MCP：{'可用' if result['mcp_available'] else '未安装，可用 pip install \".[mcp]\"'}")
+        print(f"联网查梗：{'已配置' if result['research_configured'] else '未配置（可选）'}")
+        print("数据检查：" + ("通过" if not issues else "发现问题：" + "; ".join(issues)))
+    return 0 if not issues else 2
+
+
+def cmd_evaluate(args: argparse.Namespace) -> int:
+    result = evaluation.evaluate(args.path)
+    if args.json:
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    else:
+        print(f"评估 {result['total']} 句，符合标注 {result['correct']} 句，准确率 {result['accuracy']:.1%}")
+        for item in result["mismatches"]:
+            print(f"  第 {item['line']} 行 {item['id']}：预期 {item['expected']}，实际 {item['actual']}（{item['score']}）")
+    return 0 if not result["mismatches"] else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="moqi",
@@ -192,12 +258,14 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command")
 
     p_scan = sub.add_parser("scan", help="嗅探：这段话里有没有我可能理解错的地方")
-    p_scan.add_argument("text")
+    p_scan.add_argument("text", nargs="?")
+    p_scan.add_argument("--stdin", action="store_true", help="从标准输入读取，适合宿主每轮调用")
     p_scan.add_argument("--limit", type=int, default=8)
     p_scan.set_defaults(func=cmd_scan)
 
     p_recall = sub.add_parser("recall", help="按上下文查相关条目")
-    p_recall.add_argument("context")
+    p_recall.add_argument("context", nargs="?")
+    p_recall.add_argument("--stdin", action="store_true", help="从标准输入读取")
     p_recall.add_argument("--limit", type=int, default=8)
     p_recall.set_defaults(func=cmd_recall)
 
@@ -236,6 +304,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_json = sub.add_parser("json", help="原始 JSON")
     p_json.set_defaults(func=cmd_json)
+
+    p_doctor = sub.add_parser("doctor", help="只读检查安装、依赖和数据文件")
+    p_doctor.set_defaults(func=cmd_doctor)
+
+    p_eval = sub.add_parser("evaluate", help="用人工标注的 JSONL 例句评估匹配效果")
+    p_eval.add_argument("path")
+    p_eval.set_defaults(func=cmd_evaluate)
 
     return parser
 
@@ -277,7 +352,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 0
     try:
         return int(args.func(args) or 0)
-    except (ValueError, TimeoutError) as exc:
+    except (ValueError, TimeoutError, OSError) as exc:
         print(f"[!] {exc}", file=sys.stderr)
         return 2
 

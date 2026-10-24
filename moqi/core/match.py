@@ -19,6 +19,7 @@ from typing import Dict, Iterable, List, Sequence, Set
 
 SIM_THRESHOLD = 0.60
 """signal 与文本的二元组重合度到这条线算命中。"""
+MAX_QUERY_LENGTH = 2000
 
 _PUNCT = re.compile(r"[\s\u3000,，.。!！?？:：;；'\"“”‘’()（）\[\]【】<>《》/\\|~`@#$%^&*+=_-]+")
 
@@ -46,7 +47,11 @@ def similarity(a: str, b: str) -> float:
     short, long = sorted((left, right), key=len)
     if len(short) < 4:
         return 0.0
+    if short in long:
+        return 1.0
     target = bigrams(short)
+    if not target.intersection(bigrams(long)):
+        return 0.0
     best = 0.0
     for start in range(len(long) - len(short) + 1):
         window = bigrams(long[start : start + len(short)])
@@ -65,7 +70,7 @@ def key_parts(key: str) -> List[str]:
 def key_score(text: str, key: str) -> float:
     """key 与文本的吻合程度，0 表示不沾边。
 
-    整条输入等于 key 才给 1.00；key 仅出现在长句里只算 0.70 线索。
+    多字 key 与整条输入相等时给 1.00；长句中出现或被引用、提问时给 0.70。
     单字只在整条输入就是该字时给 0.60，避免它嵌在普通词句里误命中。
     """
     clean = norm(text)
@@ -73,8 +78,13 @@ def key_score(text: str, key: str) -> float:
         return 0.0
 
     whole = norm(key)
+    raw = text.strip()
+    quoted = len(raw) >= 2 and raw[0] in '"“‘「『' and raw[-1] in '"”’」』'
+    questioning = raw.endswith(("?", "？"))
+    if whole and clean == whole and len(whole) >= 2 and (quoted or questioning):
+        return 0.70
     if whole and clean == whole:
-        return 1.0
+        return 0.60 if len(whole) == 1 else 1.0
 
     if len(whole) >= 2 and whole in clean:
         return 0.70
@@ -113,7 +123,11 @@ def score(text: str, row: Dict[str, object]) -> float:
             signal_point = round(0.5 + (sim - SIM_THRESHOLD) * (0.34 / (1 - SIM_THRESHOLD)), 4)
             if norm(text) != norm(signal):
                 signal_point = min(signal_point, 0.79)
-            return max(key_point, signal_point)
+            point = max(key_point, signal_point)
+            raw = text.strip()
+            if raw.endswith(("?", "？")) or (len(raw) >= 2 and raw[0] in '"“‘「『' and raw[-1] in '"”’」』'):
+                point = min(point, 0.79)
+            return point
 
     return key_point
 
@@ -124,6 +138,8 @@ def rank(
     limit: int = 8,
 ) -> List[Dict[str, object]]:
     """按匹配分排序，返回带 `_score` 的新列表（不改原对象）。"""
+    if not text.strip() or len(text) > MAX_QUERY_LENGTH:
+        raise ValueError(f"查询文本不能为空且不能超过 {MAX_QUERY_LENGTH} 字")
     scored: List[Dict[str, object]] = []
     for row in rows:
         point = score(text, row)

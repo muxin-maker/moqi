@@ -95,6 +95,17 @@ async def main() -> int:
                 print("[fail] 已确认的强匹配没有标为可用")
                 return 1
 
+            phrase = await session.call_tool("guess", {
+                "domain": "slang", "key": "我了个雷", "guess": "惊讶", "signal": "我了个雷",
+            })
+            phrase_id = json.loads(phrase.content[0].text)["id"]
+            await session.call_tool("correct", {"id": phrase_id, "truth": "震惊吧"})
+            long_phrase = await session.call_tool("scan", {"text": "我了个雷炸了"})
+            long_result = json.loads(long_phrase.content[0].text)
+            if not long_result["hits"] or long_result["hits"][0]["usable"] is not False:
+                print("[fail] 长句中的短语不应被当作确定含义")
+                return 1
+
             pending_result = await session.call_tool("guess", {"domain": "slang", "key": "另一条", "guess": "未确认"})
             pending_id = json.loads(pending_result.content[0].text)["id"]
             got = await session.call_tool("scan", {"text": "我哼着歌"})
@@ -127,6 +138,14 @@ async def main() -> int:
             deleted = await session.call_tool("forget", {"id": pending_id})
             if not json.loads(deleted.content[0].text)["ok"]:
                 print("[fail] forget 没有删除指定测试记录")
+                return 1
+
+            with open(os.path.join(home, "slang.jsonl"), "a", encoding="utf-8") as stream:
+                stream.write("{bad json}\n")
+            broken = await session.call_tool("scan", {"text": "我了个雷"})
+            broken_result = json.loads(broken.content[0].text)
+            if not broken_result.get("error") or "空库" not in broken_result["hint"]:
+                print("[fail] 损坏数据没有明确报错")
                 return 1
 
     print("\n全部通过。")

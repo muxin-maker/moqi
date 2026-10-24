@@ -1,6 +1,6 @@
 # moqi 开发交接
 
-本文件描述 **0.2.0 beta 2 当前实现**。最初设想见 `docs/specs/2026-10-23-moqi-design.md`；如两者冲突，以当前代码和 README 为准。
+本文件描述 **0.2.0 beta 4 当前实现**。最初设想见 `docs/specs/2026-10-23-moqi-design.md`；如两者冲突，以当前代码和 README 为准。
 
 ## 目标
 
@@ -9,9 +9,11 @@
 ## 代码位置
 
 - `moqi/core/store.py`：按领域存储 JSONL、稳定 ID、跨进程锁、原子写入和数据完整性检查。
-- `moqi/core/match.py`：确定性的 key 和文字描述匹配；单字 key 不嵌入长句匹配。
+- `moqi/core/match.py`：确定性的 key 和文字描述匹配；长句内的短语、单字 key、引用和问句都保守处理。
+- `moqi/core/query.py`：CLI 和 MCP 共用的查询结果与冲突判断。
+- `moqi/core/evaluation.py`：只读检查人工标注的例句。
 - `moqi/core/web_lookup.py`：可选的公开短语搜索；不读取个人记录，不自动确认出处。
-- `moqi/cli.py`：本地命令行；`scan` / `recall` 只读。
+- `moqi/cli.py`：本地命令行；`scan` / `recall` 只读，支持标准输入与 JSON 输出；`doctor` 和 `evaluate` 用于自检。
 - `moqi/mcp/server.py`：八个 MCP 工具。匹配分数与冲突状态会返回给模型；`forget` 仅用于用户明确要求删除记录。
 - `tests/test_core.py`、`tests/mcp_smoke.py`：隔离数据目录的回归与 MCP 测试。
 

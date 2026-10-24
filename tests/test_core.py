@@ -8,6 +8,7 @@ import os
 import sys
 import multiprocessing
 import json
+import io
 
 import pytest
 
@@ -15,6 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from moqi.core import match as matcher  # noqa: E402
 from moqi.core import store  # noqa: E402
+from moqi.core import evaluation, query  # noqa: E402
 from moqi import cli  # noqa: E402
 
 
@@ -57,6 +59,34 @@ def test_long_sentence_does_not_make_slang_certain():
     assert matcher.score("你说我了个雷是在骂人吗", row) < 0.8
 
 
+def test_quoted_or_asked_phrase_requires_context():
+    row = {"key": "我了个雷", "signal": "我了个雷", "truth": "震惊吧"}
+    assert matcher.score("「我了个雷」", row) < 0.8
+    assert matcher.score("我了个雷？", row) < 0.8
+    assert query.scan("我了个雷？", [row])["hits"][0]["usable"] is False
+
+
+def test_distinct_keys_with_same_signal_conflict():
+    rows = [
+        {"key": "图片A", "signal": "白发少女闭眼哼气", "truth": "撒娇"},
+        {"key": "图片B", "signal": "白发少女闭眼哼气", "truth": "生气"},
+    ]
+    result = query.scan("白发少女闭眼哼气", rows)
+    assert result["conflicting"] is True
+    assert all(hit["usable"] is False for hit in result["hits"])
+
+
+def test_conflict_outside_display_limit_still_blocks_use():
+    rows = [
+        {"id": f"a-{index}", "key": "同一句", "truth": "含义甲"}
+        for index in range(8)
+    ] + [{"id": "z", "key": "同一句", "truth": "含义乙"}]
+    result = query.scan("同一句", rows, limit=8)
+    assert len(result["hits"]) == 8
+    assert result["conflicting"] is True
+    assert all(hit["usable"] is False for hit in result["hits"])
+
+
 def test_embedded_signal_is_only_a_clue():
     row = {"key": "别的词", "signal": "白发少女闭眼哼气"}
     assert matcher.score("白发少女闭眼哼气", row) == 0.84
@@ -69,6 +99,7 @@ def test_key_score_multi_char_part():
 
 def test_single_char_only_matches_standalone_message():
     assert matcher.key_score("哼", "哼_白发少女") == 0.60
+    assert matcher.key_score("哼", "哼") == 0.60
     assert matcher.key_score("他发了个哼", "哼_白发少女") == 0.0
     assert matcher.key_score("我哼了一首歌", "哼") == 0.0
 
@@ -95,6 +126,11 @@ def test_rank_sorts_and_limits():
 def test_rank_drops_non_hits():
     rows = [{"id": "a", "key": "河马", "signal": ""}]
     assert matcher.rank("今天天气", rows) == []
+
+
+def test_rank_rejects_oversized_query():
+    with pytest.raises(ValueError, match="查询文本"):
+        matcher.rank("词" * (matcher.MAX_QUERY_LENGTH + 1), [])
 
 
 def test_open_guesses_excludes_confirmed():
@@ -342,6 +378,33 @@ def test_cli_json_flag_works_after_subcommand(capsys):
     assert json.loads(capsys.readouterr().out)[0]["key"] == "词"
     assert cli.main(["stats", "--json"]) == 0
     assert json.loads(capsys.readouterr().out)["open"] == 1
+
+
+def test_cli_scan_json_and_stdin_share_query_result(capsys, monkeypatch):
+    entry = store.upsert("slang", "我了个雷", "震惊")
+    store.correct(entry["id"], "震惊吧")
+    monkeypatch.setattr(sys, "stdin", io.StringIO("我了个雷炸了"))
+    assert cli.main(["scan", "--stdin", "--json"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result == query.scan("我了个雷炸了", store.load_all(strict=True))
+    assert result["hits"][0]["usable"] is False
+
+
+def test_doctor_and_scan_report_corrupt_data(capsys):
+    store.upsert("slang", "词", "猜测")
+    with open(store.domain_path("slang"), "a", encoding="utf-8") as stream:
+        stream.write("{坏行}\n")
+    assert cli.main(["doctor", "--json"]) == 2
+    assert json.loads(capsys.readouterr().out)["issues"]
+    assert cli.main(["scan", "词", "--json"]) == 2
+    assert "第 2 行" in capsys.readouterr().err
+
+
+def test_curated_context_cases_match_labels():
+    path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "examples", "evaluation_cases.jsonl")
+    result = evaluation.evaluate(path)
+    assert result["total"] >= 30
+    assert result["mismatches"] == []
 
 
 def test_cli_forget_removes_exact_key(capsys):

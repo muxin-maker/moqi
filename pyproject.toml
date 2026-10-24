@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "moqi"
-version = "0.2.0b3"
+version = "0.2.0b4"
 description = "A tacit-agreement notebook between you and your AI — it guesses what you mean, you correct it once, it remembers."
 readme = "README.md"
 requires-python = ">=3.10"

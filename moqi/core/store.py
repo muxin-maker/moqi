@@ -146,11 +146,11 @@ def load(domain: str, *, strict: bool = False) -> List[Dict[str, Any]]:
     return rows
 
 
-def load_all() -> List[Dict[str, Any]]:
+def load_all(*, strict: bool = False) -> List[Dict[str, Any]]:
     """读所有领域的全部记录。"""
     rows: List[Dict[str, Any]] = []
     for domain in list_domains():
-        rows.extend(load(domain))
+        rows.extend(load(domain, strict=strict))
     return rows
 
 
