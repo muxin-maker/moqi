@@ -42,8 +42,11 @@ python -m moqi dump
 演示脚本使用隔离临时目录，不碰你的个人记录：
 
 ```bash
+python examples/real_chat_demo.py
 python examples/walkthrough.py
 ```
+
+`real_chat_demo.py` 展示两天的自然聊天：第一次确认“我了个雷”的意思，第二天在对局聊天中召回，并检查相似字词不会误命中。它演示工具逻辑；真实聊天还需确认 MCP 客户端确实调用了这些工具。
 
 ## 接入 MCP 客户端
 
