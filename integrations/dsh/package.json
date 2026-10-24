@@ -1,0 +1,10 @@
+{
+  "name": "moqi-dsh",
+  "version": "0.2.0-beta.6",
+  "description": "DeepSeek Harness pre-step adapter for moqi",
+  "type": "module",
+  "main": "index.js",
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } },
+  "engines": { "node": ">=20" },
+  "license": "MIT"
+}

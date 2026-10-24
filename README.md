@@ -4,7 +4,7 @@ moqi 让你培养一个真正懂你意思的 AI：记住你的幽默、黑话和
 
 它把你确认过的含义存在本地，让支持 MCP 的 AI 下次遇到相同说法时先查，再回答。
 
-**当前状态：0.2.0 beta 5，公开源码预发布版。** 源码在 [GitHub](https://github.com/muxin-maker/moqi)，尚未发布到 PyPI；可以直接从 GitHub 版本标签安装。
+**当前状态：0.2.0 beta 6，公开源码预发布版。** 源码在 [GitHub](https://github.com/muxin-maker/moqi)，尚未发布到 PyPI；可以直接从 GitHub 版本标签安装。
 版本变化见 [更新记录](CHANGELOG.md)。
 
 ## 它怎样工作
@@ -14,7 +14,7 @@ moqi 让你培养一个真正懂你意思的 AI：记住你的幽默、黑话和
 3. 你明确解释后，`correct` 把你的原话记为已确认含义。可选的 `feedback` 记录你对旧猜测的评价：`right`、`partial`、`wrong`。工具不会靠两句话是否完全一样来推断对错。
 4. 再遇到相近文本，工具返回含义和匹配分数。弱匹配必须先确认语境，不能直接套用。
 
-moqi 不会自动监听聊天。宿主 AI 必须实际调用工具；只写提示词不能保证每轮都调用。
+普通 MCP 客户端仍需宿主实际调用工具；DeepSeek Harness 可安装下述前置插件，让它在每次回复前自动查询。
 
 ### 可选的联网查梗
 
@@ -37,7 +37,7 @@ python -m moqi research "我了个雷" --topic "火影忍者手游"
 $OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
 $env:PYTHONIOENCODING = 'utf-8'
 py -3 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install "moqi[mcp] @ https://github.com/muxin-maker/moqi/archive/refs/tags/v0.2.0b5.zip"
+.\.venv\Scripts\python.exe -m pip install "moqi[mcp] @ https://github.com/muxin-maker/moqi/archive/refs/tags/v0.2.0b6.zip"
 .\.venv\Scripts\python.exe -m moqi doctor
 ```
 
@@ -80,6 +80,10 @@ $env:PYTHONIOENCODING = 'utf-8'
 ```
 
 结果中的 `hits[].usable` 表示能否参考已确认含义；`false`、`conflicting=true` 或空结果都不能当成确定解释。钩子应把这个结果作为数据交给宿主，再由宿主判断当前语境。这样可以保证钩子每轮执行查询；仅靠 MCP 工具描述或提示词，无法保证宿主每轮主动调用。一次只传当前消息，避免把整段私人聊天发进命令行或第三方搜索。
+
+### DeepSeek Harness 桌面端
+
+仓库的 [`integrations/dsh`](integrations/dsh) 是独立的本地插件。把它加入 DeepSeek Harness profile 的依赖与 `dsh.profile.bundles`，再在 profile 的 `cordis.patch.yml` 中配置 `moqi-dsh` 的 `python` 为已安装 moqi 的 Python 绝对路径；[安装示例](integrations/dsh/README.md)给出具体步骤。插件使用 `agent/pre-step`，每步查询最近一条真正的用户文字；命中时只传已确认的记录和 `usable` 标记。它不上传整段聊天、不自行联网，扫描失败时不阻塞回答。无命中不会自动创建记录，仍需由用户确认后使用 `guess`、`correct` 记录。
 
 ## 接入 MCP 客户端
 

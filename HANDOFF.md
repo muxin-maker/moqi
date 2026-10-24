@@ -1,6 +1,6 @@
 # moqi 开发交接
 
-本文件描述 **0.2.0 beta 5 当前实现**。最初设想见 `docs/specs/2026-10-23-moqi-design.md`；如两者冲突，以当前代码和 README 为准。
+本文件描述 **0.2.0 beta 6 当前实现**。最初设想见 `docs/specs/2026-10-23-moqi-design.md`；如两者冲突，以当前代码和 README 为准。
 
 ## 目标
 
@@ -15,6 +15,7 @@
 - `moqi/core/web_lookup.py`：可选的公开短语搜索；不读取个人记录，不自动确认出处。
 - `moqi/cli.py`：本地命令行；`scan` / `recall` 只读，支持标准输入与 JSON 输出；`doctor` 和 `evaluate` 用于自检。
 - `moqi/mcp/server.py`：八个 MCP 工具。匹配分数与冲突状态会返回给模型；`forget` 仅用于用户明确要求删除记录。
+- `integrations/dsh/`：DeepSeek Harness 回复前自动查询插件及端到端测试；通过本地 Python 调用 `scan`，只把命中的已确认记录作为数据交给模型，失败时放行。
 - `tests/test_core.py`、`tests/mcp_smoke.py`：隔离数据目录的回归与 MCP 测试。
 
 ## 数据约定
@@ -25,8 +26,8 @@
 
 ## 发布前仍需验证
 
-1. 在目标 Windows、macOS、Linux 客户端上安装 wheel 并连接 MCP，特别检查各宿主是否按提示主动调用 `scan`。
+1. 在 DeepSeek Harness 实际聊天中确认插件已加载、查询确实每轮运行；另在目标 Windows、macOS、Linux 客户端上安装 wheel 并连接 MCP，检查各宿主是否按提示主动调用 `scan`。
 2. 用真实但经同意的数据做连续多轮使用测试，量化漏检、误检和打断频率；当前单元测试不能证明对话体验。
 3. GitHub 仓库已公开在 `muxin-maker/moqi`；发布包之前还需确认包名所有权和支持渠道。每版同步 GitHub 的步骤见 `docs/releasing.md`。
 
-本地开发测试：`python -m pytest -q`、`python tests/mcp_smoke.py`。核心保持零第三方依赖，不引入数据库或自动上传。
+本地开发测试：`python -m pytest -q`、`python tests/mcp_smoke.py`、`node --test integrations/dsh/test/hook.test.mjs`。核心保持零第三方依赖，不引入数据库或自动上传。
